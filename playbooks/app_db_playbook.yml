@@ -1,0 +1,56 @@
+
+# This is a YAML file to install nginx onto oue web VM using YAML
+---
+
+
+- name: start mongodb
+  import_playbook: mongodb_setup.yml
+
+
+# where do we want to install
+
+
+#  tasks:
+- name: Install nginx
+  import_playbook: nginx_setup.yml
+
+
+# Install node js and NPM
+
+- hosts: web
+  gather_facts: true
+  become: true
+
+
+
+  tasks:
+  - name: Install nodejs
+    apt: pkg=nodejs state=present
+
+  - name: Install NPM
+    apt: pkg=npm state=present
+
+  - name: download latest npm + Mongoose
+    shell: |
+      npm install -g npm@latest
+      npm install mongoose -y
+
+
+# Downloading pm2
+  - name: Install pm2
+    npm:
+      name: pm2
+      global: yes
+
+
+  - name: seed + run app
+    shell: |
+      cd app/
+      npm install
+      node seeds/seed.js
+      pm2 kill
+      pm2 start app.js
+    environment:
+      DB_HOST: mongodb://vagrant@192.168.33.11:27017/posts?authSource=admin
+    become_user: root
+
